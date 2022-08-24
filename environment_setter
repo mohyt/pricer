@@ -5,6 +5,15 @@
 
 CURRENT_SCRIPT_DIRECTORY="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
 
+case "$OSTYPE" in
+  solaris*) echo "SOLARIS" ;;
+  darwin*)  echo "OSX" ;; 
+  linux*)   echo "LINUX" ;;
+  bsd*)     echo "BSD" ;;
+  msys*)    echo "WINDOWS" ;;
+  *)        echo "unknown: $OSTYPE" ;;
+esac
+
 function check_command_exists_and_on_path()
 {
     local command_name=${1:?"'command_name' is a mandatory parameter"}
@@ -46,22 +55,37 @@ function create_and_activate_doc_virtual_environment()
             return 1
         }
 
-        python3 -m venv --prompt "pricer_build" "${pyenv_path}" ||
-        {
-            rm -fr "${pyenv_path}"
-            return 1
-        }
+        if [[ "$OSTYPE" =~ "msys" ]]; then #For Windows OS
+            pyenv_activate_script="${pyenv_path}/Scripts/activate"
+            py -m venv --prompt "pricer_build" "${pyenv_path}" ||
+            {
+                rm -rf "${pyenv_path}"
+                return 1
+            }
+            # shellcheck disable=SC1090
+            source "${pyenv_activate_script}"
+            echo "Checking/Installing required Python packages from ${pip_requirements_file}"
+            py -m pip install --disable-pip-version-check --no-binary --no-cache-dir --no-input --quiet --requirement "${pip_requirements_file}" --upgrade pip ||
+            {
+                echo "ERROR: failed to install required Python packages"
+                return 1
+            }
+        else
+            python3 -m venv --prompt "pricer_build" "${pyenv_path}" ||
+            {
+                rm -fr "${pyenv_path}"
+                return 1
+            }
+            # shellcheck disable=SC1090
+            source "${pyenv_activate_script}"
+            echo "Checking/Installing required Python packages from ${pip_requirements_file}"
+            python3 -m pip install --disable-pip-version-check --no-binary --no-cache-dir --no-input --quiet --requirement "${pip_requirements_file}" --upgrade pip ||
+            {
+                echo "ERROR: failed to install required Python packages"
+                return 1
+            }
+        fi
     fi
-
-    # shellcheck disable=SC1090
-    source "${pyenv_activate_script}"
-
-    echo "Checking/Installing required Python packages from ${pip_requirements_file}"
-    python3 -m pip install --disable-pip-version-check --no-binary --no-cache-dir --no-input --quiet --requirement "${pip_requirements_file}" --upgrade pip ||
-    {
-        echo "ERROR: failed to install required Python packages"
-        return 1
-    }
 }
 
 configure_doc_environment
