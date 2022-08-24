@@ -29,13 +29,13 @@ function check_command_exists_and_on_path()
     fi
 }
 
-function configure_doc_environment()
+function configure_environment()
 {
     echo "Setting up environment"
-    create_and_activate_doc_virtual_environment
+    create_and_activate_virtual_environment
 }
 
-function create_and_activate_doc_virtual_environment()
+function create_and_activate_virtual_environment()
 {
     local                                                                    \
         pip_requirements_file="${CURRENT_SCRIPT_DIRECTORY}/pip_requirements" \
@@ -88,4 +88,4 @@ function create_and_activate_doc_virtual_environment()
     fi
 }
 
-configure_doc_environment
+configure_environment
