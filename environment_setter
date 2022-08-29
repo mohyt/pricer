@@ -1,0 +1,91 @@
+#!/usr/bin/env bash
+
+[ "${BASH_SOURCE[0]}" == "$0" ] && { echo "ERROR: this script must be source'd (e.g., \". ${BASH_SOURCE[0]}\")"; exit 1; }
+
+
+CURRENT_SCRIPT_DIRECTORY="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+
+case "$OSTYPE" in
+  solaris*) echo "SOLARIS" ;;
+  darwin*)  echo "OSX" ;; 
+  linux*)   echo "LINUX" ;;
+  bsd*)     echo "BSD" ;;
+  msys*)    echo "WINDOWS" ;;
+  *)        echo "unknown: $OSTYPE" ;;
+esac
+
+function check_command_exists_and_on_path()
+{
+    local command_name=${1:?"'command_name' is a mandatory parameter"}
+
+    # can use any of the following, see 'man bash' for more
+    # if ! command -v ${command_name} &> /dev/null; then
+    # if ! hash       ${command_name} &> /dev/null; then
+    # if ! type       ${command_name} &> /dev/null; then
+
+    if ! command -v "${command_name}" &> /dev/null; then
+        echo "ERROR: command '${command_name}' could not be found"
+        return 1
+    fi
+}
+
+function configure_environment()
+{
+    echo "Setting up environment"
+    create_and_activate_virtual_environment
+}
+
+function create_and_activate_virtual_environment()
+{
+    local                                                                    \
+        pip_requirements_file="${CURRENT_SCRIPT_DIRECTORY}/pip_requirements" \
+        pyenv_path="${CURRENT_SCRIPT_DIRECTORY}/pyenv"
+
+    local pyenv_activate_script="${pyenv_path}/bin/activate"
+
+    # create the Python virtual environment if it is not there already
+    if [[ ! -d "${pyenv_path}" || ! -f "${pyenv_activate_script}" ]]; then
+        rm -fr "${pyenv_path}"
+
+        echo "Creating Python virtual environment for the pricer build"
+
+        check_command_exists_and_on_path python3 ||
+        {
+            echo "ERROR: failed to locate 'python3'. Make sure it is installed on your system and on PATH"
+            return 1
+        }
+
+        if [[ "$OSTYPE" =~ "msys" ]]; then #For Windows OS
+            pyenv_activate_script="${pyenv_path}/Scripts/activate"
+            py -m venv --prompt "pricer_build" "${pyenv_path}" ||
+            {
+                rm -rf "${pyenv_path}"
+                return 1
+            }
+            # shellcheck disable=SC1090
+            source "${pyenv_activate_script}"
+            echo "Checking/Installing required Python packages from ${pip_requirements_file}"
+            py -m pip install --disable-pip-version-check --no-binary --no-cache-dir --no-input --quiet --requirement "${pip_requirements_file}" --upgrade pip ||
+            {
+                echo "ERROR: failed to install required Python packages"
+                return 1
+            }
+        else
+            python3 -m venv --prompt "pricer_build" "${pyenv_path}" ||
+            {
+                rm -fr "${pyenv_path}"
+                return 1
+            }
+            # shellcheck disable=SC1090
+            source "${pyenv_activate_script}"
+            echo "Checking/Installing required Python packages from ${pip_requirements_file}"
+            python3 -m pip install --disable-pip-version-check --no-binary --no-cache-dir --no-input --quiet --requirement "${pip_requirements_file}" --upgrade pip ||
+            {
+                echo "ERROR: failed to install required Python packages"
+                return 1
+            }
+        fi
+    fi
+}
+
+configure_environment
