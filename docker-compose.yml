@@ -1,0 +1,87 @@
+version: "3"
+services:
+    zookeeper:
+      image: confluentinc/cp-zookeeper:7.2.1
+      user: "0:0"
+      hostname: zookeeper
+      container_name: zookeeper
+      environment:
+        ZOOKEEPER_CLIENT_PORT: 2181
+        ZOOKEEPER_TICK_TIME: 2000
+      ports:
+        - 2181:2181
+    kafka:
+      image: confluentinc/cp-kafka:7.2.1
+      user: "0:0"
+      hostname: kafka
+      container_name: kafka
+      depends_on:
+        - zookeeper
+      ports:
+        - 29092:29092
+        - 9092:9092
+      environment:
+        KAFKA_BROKER_ID: 1
+        KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+        KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+        KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+        KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    init-kafka:
+      image: confluentinc/cp-kafka:7.2.1
+      user: "0:0"
+      hostname: init-kafka
+      container_name: init-kafka
+      depends_on:
+        - kafka
+      entrypoint: [ '/bin/sh', '-c' ]
+      command: |
+        "
+        # blocks until kafka is reachable
+        kafka-topics --bootstrap-server kafka:29092 --list
+
+        echo -e 'Creating kafka topics'
+        kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic MINI-DOG-JOBS --replication-factor 1 --partitions 1
+        kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic MINI-DOG-EXTRACTION-OUTPUT --replication-factor 1 --partitions 1
+
+        echo -e 'Successfully created the following topics:'
+        kafka-topics --bootstrap-server kafka:29092 --list
+        "
+    api-service:
+      container_name: api-service
+      build:
+        context: ./api_service
+        dockerfile: Dockerfile
+      ports:
+        - "8088:8088"
+    extractor-service:    
+      container_name: extractor-service
+      build:
+        context: ./worker_service
+        dockerfile: Dockerfile
+      depends_on:
+        - init-kafka
+      environment:
+        RUNNING_MODE: "extractor"
+        SOURCE_BOOTSTRAP_SERVER: "kafka:29092"
+        SOURCE_GROUP: "source-data-extractor"
+        SOURCE_TOPIC: "MINI-DOG-JOBS"
+        SINK_BOOTSTRAP_SERVER: "kafka:29092"
+        SINK_TOPIC: "MINI-DOG-EXTRACTION-OUTPUT"
+        PORT: 8090
+      ports:
+        - "8090:8090"
+    loader-service:    
+      container_name: loader-service
+      build:
+        context: ./worker_service
+        dockerfile: Dockerfile
+      depends_on:
+        - init-kafka
+      environment:
+        RUNNING_MODE: "loader"
+        SOURCE_BOOTSTRAP_SERVER: "kafka:29092"
+        SOURCE_GROUP: "destination-data-loader"
+        SOURCE_TOPIC: "MINI-DOG-EXTRACTION-OUTPUT"
+        PORT: 8091
+      ports:
+        - "8091:8091"

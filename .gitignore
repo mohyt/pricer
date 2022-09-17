@@ -1,1 +1,5 @@
 pyenv
+__pycache__
+
+# VSCode related
+.vscode

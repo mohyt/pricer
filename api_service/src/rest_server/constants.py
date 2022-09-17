@@ -1,0 +1,2 @@
+HEALTH_MANAGER_URL="health_manager"
+REST_PING_ENDPOINT="ping"
