@@ -4,7 +4,7 @@ services:
       image: confluentinc/cp-zookeeper:7.2.1
       user: "0:0"
       hostname: zookeeper
-      container_name: zookeeper
+      container_name: pricer-zookeeper
       environment:
         ZOOKEEPER_CLIENT_PORT: 2181
         ZOOKEEPER_TICK_TIME: 2000
@@ -14,7 +14,7 @@ services:
       image: confluentinc/cp-kafka:7.2.1
       user: "0:0"
       hostname: kafka
-      container_name: kafka
+      container_name: pricer-kafka
       depends_on:
         - zookeeper
       ports:
@@ -30,7 +30,7 @@ services:
       image: confluentinc/cp-kafka:7.2.1
       user: "0:0"
       hostname: init-kafka
-      container_name: init-kafka
+      container_name: pricer-init-kafka
       depends_on:
         - kafka
       entrypoint: [ '/bin/sh', '-c' ]
@@ -40,21 +40,21 @@ services:
         kafka-topics --bootstrap-server kafka:29092 --list
 
         echo -e 'Creating kafka topics'
-        kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic MINI-DOG-JOBS --replication-factor 1 --partitions 1
-        kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic MINI-DOG-EXTRACTION-OUTPUT --replication-factor 1 --partitions 1
+        kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic PRICER-JOBS --replication-factor 1 --partitions 1
+        kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic PRICER-EXTRACTION-OUTPUT --replication-factor 1 --partitions 1
 
         echo -e 'Successfully created the following topics:'
         kafka-topics --bootstrap-server kafka:29092 --list
         "
     api-service:
-      container_name: api-service
+      container_name: pricer-api-service
       build:
         context: ./api_service
         dockerfile: Dockerfile
       ports:
         - "8088:8088"
     extractor-service:    
-      container_name: extractor-service
+      container_name: pricer-extractor-service
       build:
         context: ./worker_service
         dockerfile: Dockerfile
@@ -64,14 +64,14 @@ services:
         RUNNING_MODE: "extractor"
         SOURCE_BOOTSTRAP_SERVER: "kafka:29092"
         SOURCE_GROUP: "source-data-extractor"
-        SOURCE_TOPIC: "MINI-DOG-JOBS"
+        SOURCE_TOPIC: "PRICER-JOBS"
         SINK_BOOTSTRAP_SERVER: "kafka:29092"
-        SINK_TOPIC: "MINI-DOG-EXTRACTION-OUTPUT"
+        SINK_TOPIC: "PRICER-EXTRACTION-OUTPUT"
         PORT: 8090
       ports:
         - "8090:8090"
     loader-service:    
-      container_name: loader-service
+      container_name: pricer-loader-service
       build:
         context: ./worker_service
         dockerfile: Dockerfile
@@ -81,7 +81,7 @@ services:
         RUNNING_MODE: "loader"
         SOURCE_BOOTSTRAP_SERVER: "kafka:29092"
         SOURCE_GROUP: "destination-data-loader"
-        SOURCE_TOPIC: "MINI-DOG-EXTRACTION-OUTPUT"
+        SOURCE_TOPIC: "PRICER-EXTRACTION-OUTPUT"
         PORT: 8091
       ports:
         - "8091:8091"

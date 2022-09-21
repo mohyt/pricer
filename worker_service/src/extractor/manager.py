@@ -6,8 +6,7 @@ import time
 from common.kafka import KafkaSink, KafkaSource
 from common.main import Main
 from common.service_management import ServiceManager
-from extractor.services.azure import AzureSource
-from extractor.services.snowflake import SnowflakeSource
+from extractor.services.shopify import ShopifySource
 
 
 class ExtractorServiceManager(ServiceManager):
@@ -15,8 +14,7 @@ class ExtractorServiceManager(ServiceManager):
     """Implements extractor service manager"""
 
     _SOURCE_TYPE_2_CLS = {
-        "azure": AzureSource,
-        "snowflake": SnowflakeSource
+        "shopify": ShopifySource
     }
 
     def __init__(self, configuration):

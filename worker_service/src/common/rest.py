@@ -30,6 +30,10 @@ class RestClient:
     def send_post_request(self, url_path, request_body=None):
         """Sends the post request"""
         return self._request(url_path, "POST", request_body)
+    
+    def send_get_request(self, url_path):
+        """Sends the get request"""
+        return self._request(url_path, "GET")
 
     def _request(self, url_path, method, json=None):
         """Performs REST request"""

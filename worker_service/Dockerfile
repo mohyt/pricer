@@ -7,4 +7,4 @@ RUN pip install --disable-pip-version-check --no-cache-dir --no-input --quiet --
 COPY src /app
 WORKDIR /app
 EXPOSE 8090
-CMD [ "/bin/bash", "-c", "gunicorn \"rest_server.main:rest_application(module_class_path='module.WorkerModule', service_name='worker_service')\" --worker-class rest_server.uvicorn_worker.MiniDogUvicornWorker --bind 0.0.0.0:$PORT --timeout 120"]
+CMD [ "/bin/bash", "-c", "gunicorn \"rest_server.main:rest_application(module_class_path='module.WorkerModule', service_name='worker_service')\" --worker-class rest_server.uvicorn_worker.PricerUvicornWorker --bind 0.0.0.0:$PORT --timeout 120"]

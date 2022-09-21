@@ -10,7 +10,7 @@ from uvicorn.workers import UvicornWorker
 from rest_server.main import RestMain
 
 
-class MiniDogServer(Server):
+class PricerDogServer(Server):
 
     """Implements a wrapper for the Uvicorn server"""
 
@@ -19,13 +19,13 @@ class MiniDogServer(Server):
         super().handle_exit(sig, frame)
 
 
-class MiniDogUvicornWorker(UvicornWorker):
+class PricerUvicornWorker(UvicornWorker):
 
     """Implements a wrapper for the Uvicorn worker"""
 
     async def _serve(self) -> None:
         self.config.app = self.wsgi
-        server = MiniDogServer(config=self.config)
+        server = PricerDogServer(config=self.config)
 
         await server.serve(sockets=self.sockets)
         if not server.started:
